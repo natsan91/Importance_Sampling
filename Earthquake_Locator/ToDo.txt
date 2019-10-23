@@ -1,0 +1,22 @@
+			To Do before putting up on GitHub
+
+-Create readme or other text file to explain project
+	-Use prompts and report from class files	
+	-Location C:/Users/natha/Documents/Northwestern/Fourth Year/Winter 17/DataScience Class/Exercise1
+	-Emphasize input data, what we're trying to find, and the LS inverse method used
+-Try getting ellipse to draw using ellipse func
+-Break off some tasks in script into subfunctions to shorten it
+	-Creating map
+	-Least squares solve
+	-While loop for solving for solution
+	-Initial data load
+-Clean up command line output
+-Add comments at top of script
+
+-Maybe stuff
+	-Try implementing random guess
+	-Add map coords to map
+	-Look at files in anaconda or whatever I installed
+	
+	
+# # # # # cd C:/Users/natha/Documents/Northwestern/Research/Code/GitStuff/Earthquake_Locator
