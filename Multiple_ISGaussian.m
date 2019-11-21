@@ -2,7 +2,10 @@ function Multiple_ISGaussian
 % multiple importance sampling for the Gaussian random walk
 % produces a full histogram which closely matches the exact solution
 % by using multiple importance sampling targets.
+
 % Written by Nathan Sanford to accompany Importance_Sampling_Tutorial.pdf
+% The MIS sum formulas use the balance heuristic and aren't as transparent
+% as those in ISGaussian.m - start there first.
 
 % importance sampling on 
 Perform_IS = 1;

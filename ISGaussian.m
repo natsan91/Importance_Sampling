@@ -27,14 +27,11 @@ binwidth = locs(2)-locs(1);
 
 if Perform_IS
     IS_target=10; % biasing target(s)
-    J=length(IS_target); % code technically set up to allow multiple IS
     mu=IS_target/N; % mean shift for biasing distribution
-    % apportion total samples up amongst the targets
-    M=floor(numSamples/J)*ones(J,1); 
-    M(ceil(J/2))=M(ceil(J/2))+numSamples-sum(M);
+    M=numSamples; 
     % pre-allocate arrays for prob and variance histograms (for each)
-    PhatJ=zeros(J,length(locs)); 
-    ShatJ=zeros(J,length(locs));
+    P_IS=zeros(1,length(locs)); 
+    var_IS=zeros(1,length(locs));
 end
 
 %% direct monte-carlo sims
@@ -59,43 +56,37 @@ mc_cov = sqrt(mcVar)./mcP; % monte carlo coeff of var estimator
 
 %% Using Importance sampling
 if Perform_IS
-    for j=1:J % this loop is for multiple importance sampling
-        bin=zeros(M(j),1);
-        binweight=bin;
-        for k=1:M(j) % loop over samples
-            % draw sample
-            x=sqrt(Ovar)*randn(N,1);  % steps     
-            xstar=x+mu(j); % steps with biasing
-            z=sum(xstar); % random-walk with biased steps
+    bin=zeros(M,1);
+    binweight=bin;
+    for k=1:M % loop over samples
+        % draw sample
+        x=sqrt(Ovar)*randn(N,1);  % steps     
+        xstar=x+mu; % steps with biasing
+        z=sum(xstar); % random-walk with biased steps
 
-            % binning
-            finder=abs(locs-z);
-            [~,bin(k)]=min(finder); 
-            % likelihood ratio-each x is iid gaussian
-            biased=zeros(1,J); 
-            for jj=1:J
-               biased(jj)=prod(gaussian(xstar,mu(jj),Ovar),1);
-            end
-            invlike=biased./prod(gaussian(xstar,0,Ovar)); % reciprocal of likelihood ratio
-            binweight(k)=1/sum(M'.*invlike);
-        end
-
-        for k=1:M(j)
-            % Now do the importance sampling sum
-            PhatJ(j,bin(k))=PhatJ(j,bin(k))+binweight(k); 
-        end
-        PhatJ(j,:)=PhatJ(j,:)./binwidth;
-        for k=1:M(j)
-            thisbin=bin(k);
-            temp=PhatJ(j,:);
-            mybinweight=M(j)*binweight(k);
-            temp(thisbin)=PhatJ(j,thisbin)-mybinweight;
-            ShatJ(j,:)=ShatJ(j,:)+temp.^2;
-        end
+        % binning
+        finder=abs(locs-z);
+        [~,bin(k)]=min(finder); 
+        % likelihood ratio computation - step by step
+        % the products are needed as there are multiple steps in RW
+        p=prod(gaussian(xstar,0,Ovar)); % unbiased prob of sample
+        pstar=prod(gaussian(xstar,mu,Ovar),1); % biased prob of sample
+        like_rat=p/pstar; % likelihood ratio
+        binweight(k)=like_rat; % for sum
+        P_IS(bin(k))=P_IS(bin(k))+(1/M)*binweight(k);
+    end
+    P_IS = P_IS./binwidth; % normalization to compare with pdf
+    % for variance estimator
+    % again, there are faster ways to do this but this 
+    % code is good for demonstration purposes
+    for k=1:M
+        thisbin=bin(k);
+        temp=P_IS;
+        temp(thisbin)=P_IS(thisbin)-binweight(k);
+        var_IS=var_IS+temp.^2;
     end
     
-    P_IS=sum(PhatJ,1);
-    var_IS=sum(1./(M.*(M-1)).*ShatJ,1); 
+    var_IS=1/(M*(M-1)).*var_IS; 
     cov_IS=sqrt(var_IS)./P_IS; 
 end
 
@@ -113,11 +104,9 @@ semilogy(locs,gaussian(locs,0,N*Ovar),'-g',locs,mcP,'--b','linewidth',2)
 legendinfo={'Exact','MC'};
 hold on
 if Perform_IS
-    semilogy(locs,P_IS,':r','linewidth',2)
-    for h=1:J
-        plot(IS_target(h)*ones(100,1),linspace(1e-100,1),'--',...
-            'color',0.7*ones(1,3),'linewidth',2)
-    end
+    semilogy(locs,P_IS,':r','linewidth',2)    
+    plot(IS_target*ones(100,1),linspace(1e-100,1),'--',...
+        'color',0.7*ones(1,3),'linewidth',2)
     legendinfo{3}='ISMC estimate';
     legend(legendinfo,'location','southwest','fontsize',10.5)
 else
@@ -135,10 +124,8 @@ semilogy(locs,mc_cov,'--b','linewidth',2)
 hold on
 if Perform_IS
     semilogy(locs,cov_IS,':r','linewidth',2)
-    for h=1:J
-        plot(IS_target(h)*ones(100,1),linspace(1e-10,1),'--',...
-            'color',0.7*ones(1,3),'linewidth',2)
-    end
+    plot(IS_target*ones(100,1),linspace(1e-10,1),'--',...
+        'color',0.7*ones(1,3),'linewidth',2)
 end
 axis([xbds, min(10^-2.5,min(mc_cov(mc_cov>0))) 1])
 ylabel('C.V.')
